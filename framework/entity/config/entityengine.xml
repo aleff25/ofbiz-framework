@@ -52,9 +52,10 @@ access. For a detailed description see the core/docs/entityconfig.html file.
     <debug-xa-resources value="false" />  <!-- see https://issues.apache.org/jira/browse/OFBIZ-4282 for more -->
     
     <delegator name="default" entity-model-reader="main" entity-group-reader="main" entity-eca-reader="main" distributed-cache-clear-enabled="false">
-        <group-map group-name="org.apache.ofbiz" datasource-name="localderby"/>
-        <group-map group-name="org.apache.ofbiz.olap" datasource-name="localderbyolap"/>
-        <group-map group-name="org.apache.ofbiz.tenant" datasource-name="localderbytenant"/>
+        <group name="org.ofbiz" datasource="postgres"/>
+<!--        <group-map group-name="org.apache.ofbiz" datasource-name="localderby"/>-->
+<!--        <group-map group-name="org.apache.ofbiz.olap" datasource-name="localderbyolap"/>-->
+<!--        <group-map group-name="org.apache.ofbiz.tenant" datasource-name="localderbytenant"/>-->
     </delegator>
     <!-- May be used when you create a service that manages many data for massive imports, this for performance reason or to escape functional cases --> 
     <delegator name="default-no-eca" entity-model-reader="main" entity-group-reader="main" entity-eca-reader="main" entity-eca-enabled="false" distributed-cache-clear-enabled="false">
@@ -124,7 +125,15 @@ access. For a detailed description see the core/docs/entityconfig.html file.
      * Serializable (NOT Recommended)
      * Not set uses database default
     -->
-    
+
+    <datasource name="postgres"
+                helper-class="org.ofbiz.entity.datasource.GenericHelper"
+                field-type-name="postgres"
+                driver-name="org.postgresql.Driver"
+                jdbc-uri="${sys:OFBIZ_POSTGRES_OFBIZ_URI}"
+                jdbc-username="${sys:OFBIZ_POSTGRES_OFBIZ_DB}"
+                jdbc-password="${sys:OFBIZ_POSTGRES_OFBIZ_PASSWORD}">
+    </datasource>
     <datasource name="localhsql"
             helper-class="org.apache.ofbiz.entity.datasource.GenericHelperDAO"
             field-type-name="hsql"
