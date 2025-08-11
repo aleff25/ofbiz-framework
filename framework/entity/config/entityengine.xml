@@ -52,10 +52,10 @@ access. For a detailed description see the core/docs/entityconfig.html file.
     <debug-xa-resources value="false" />  <!-- see https://issues.apache.org/jira/browse/OFBIZ-4282 for more -->
     
     <delegator name="default" entity-model-reader="main" entity-group-reader="main" entity-eca-reader="main" distributed-cache-clear-enabled="false">
-        <group name="org.ofbiz" datasource="postgres"/>
+        <group-map group-name="org.apache.ofbiz" datasource-name="postgres"/>
 <!--        <group-map group-name="org.apache.ofbiz" datasource-name="localderby"/>-->
-<!--        <group-map group-name="org.apache.ofbiz.olap" datasource-name="localderbyolap"/>-->
-<!--        <group-map group-name="org.apache.ofbiz.tenant" datasource-name="localderbytenant"/>-->
+        <group-map group-name="org.apache.ofbiz.olap" datasource-name="localderbyolap"/>
+        <group-map group-name="org.apache.ofbiz.tenant" datasource-name="localderbytenant"/>
     </delegator>
     <!-- May be used when you create a service that manages many data for massive imports, this for performance reason or to escape functional cases --> 
     <delegator name="default-no-eca" entity-model-reader="main" entity-group-reader="main" entity-eca-reader="main" entity-eca-enabled="false" distributed-cache-clear-enabled="false">
