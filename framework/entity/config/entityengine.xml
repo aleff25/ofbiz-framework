@@ -127,12 +127,32 @@ access. For a detailed description see the core/docs/entityconfig.html file.
     -->
 
     <datasource name="postgres"
-                helper-class="org.ofbiz.entity.datasource.GenericHelper"
+                helper-class="org.apache.ofbiz.entity.datasource.GenericHelperDAO"
                 field-type-name="postgres"
-                driver-name="org.postgresql.Driver"
+                check-on-start="true"
+                add-missing-on-start="true"
+                check-pks-on-start="false"
+                use-foreign-keys="true"
+                join-style="ansi-no-parenthesis"
+                alias-view-columns="false">
+
+        <read-data reader-name="tenant"/>
+        <read-data reader-name="seed"/>
+        <read-data reader-name="seed-initial"/>
+        <read-data reader-name="demo"/>
+        <read-data reader-name="ext"/>
+        <read-data reader-name="ext-test"/>
+        <read-data reader-name="ext-demo"/>
+
+        <inline-jdbc
+                jdbc-driver="org.postgresql.Driver"
                 jdbc-uri="${sys:OFBIZ_POSTGRES_OFBIZ_URI}"
-                jdbc-username="${sys:OFBIZ_POSTGRES_OFBIZ_DB}"
-                jdbc-password="${sys:OFBIZ_POSTGRES_OFBIZ_PASSWORD}">
+                jdbc-username="${sys:OFBIZ_POSTGRES_OFBIZ_USER}"
+                jdbc-password="${sys:OFBIZ_POSTGRES_OFBIZ_PASSWORD}"
+                isolation-level="ReadCommitted"
+                pool-minsize="2"
+                pool-maxsize="50"
+                time-between-eviction-runs-millis="600000"/>
     </datasource>
     <datasource name="localhsql"
             helper-class="org.apache.ofbiz.entity.datasource.GenericHelperDAO"
