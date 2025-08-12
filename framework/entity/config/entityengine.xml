@@ -128,13 +128,16 @@ access. For a detailed description see the core/docs/entityconfig.html file.
 
     <datasource name="postgres"
                 helper-class="org.apache.ofbiz.entity.datasource.GenericHelperDAO"
+                schema-name="ofbiz"
                 field-type-name="postgres"
                 check-on-start="true"
                 add-missing-on-start="true"
-                check-pks-on-start="false"
-                use-foreign-keys="true"
-                join-style="ansi-no-parenthesis"
-                alias-view-columns="false">
+                use-fk-initially-deferred="false"
+                alias-view-columns="false"
+                join-style="ansi"
+                use-binary-type-for-blob="true"
+                use-order-by-nulls="true"
+                offset-style="limit">
 
         <read-data reader-name="tenant"/>
         <read-data reader-name="seed"/>
