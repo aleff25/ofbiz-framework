@@ -499,7 +499,7 @@ access. For a detailed description see the core/docs/entityconfig.html file.
 
     <datasource name="localpostgres"
             helper-class="org.apache.ofbiz.entity.datasource.GenericHelperDAO"
-            schema-name="public"
+            schema-name="ofbiz"
             field-type-name="postgres"
             check-on-start="true"
             add-missing-on-start="true"
@@ -538,7 +538,7 @@ access. For a detailed description see the core/docs/entityconfig.html file.
     </datasource>
     <datasource name="localpostgresolap"
             helper-class="org.apache.ofbiz.entity.datasource.GenericHelperDAO"
-            schema-name="public"
+            schema-name="ofbizolap"
             field-type-name="postgres"
             check-on-start="true"
             add-missing-on-start="true"
@@ -575,7 +575,7 @@ access. For a detailed description see the core/docs/entityconfig.html file.
     </datasource>
     <datasource name="localpostgrestenant"
             helper-class="org.apache.ofbiz.entity.datasource.GenericHelperDAO"
-            schema-name="public"
+            schema-name="ofbiztenant"
             field-type-name="postgres"
             check-on-start="true"
             add-missing-on-start="true"
