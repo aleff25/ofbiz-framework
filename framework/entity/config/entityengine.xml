@@ -521,9 +521,9 @@ access. For a detailed description see the core/docs/entityconfig.html file.
         <read-data reader-name="ext-demo"/>
         <inline-jdbc
                 jdbc-driver="org.postgresql.Driver"
-                jdbc-uri="${sys:OFBIZ_POSTGRES_OFBIZ_URI}"
-                jdbc-username="${sys:OFBIZ_POSTGRES_OFBIZ_USER}"
-                jdbc-password="${sys:OFBIZ_POSTGRES_OFBIZ_PASSWORD}"
+                jdbc-uri="${sysenv:OFBIZ_POSTGRES_OFBIZ_URI}"
+                jdbc-username="${sysenv:OFBIZ_POSTGRES_OFBIZ_USER}"
+                jdbc-password="${sysenv:OFBIZ_POSTGRES_OFBIZ_PASSWORD}"
                 isolation-level="ReadCommitted"
                 pool-minsize="2"
                 pool-maxsize="250"
@@ -558,9 +558,9 @@ access. For a detailed description see the core/docs/entityconfig.html file.
         <read-data reader-name="ext-demo"/>
         <inline-jdbc
                 jdbc-driver="org.postgresql.Driver"
-                jdbc-uri="${sys:OFBIZ_POSTGRES_OFBIZ_URI_OLAP}"
-                jdbc-username="${sys:OFBIZ_POSTGRES_OFBIZ_USER}"
-                jdbc-password="${sys:OFBIZ_POSTGRES_OFBIZ_PASSWORD}"
+                jdbc-uri="${sysenv:OFBIZ_POSTGRES_OFBIZ_URI_OLAP}"
+                jdbc-username="${sysenv:OFBIZ_POSTGRES_OFBIZ_USER}"
+                jdbc-password="${sysenv:OFBIZ_POSTGRES_OFBIZ_PASSWORD}"
                 isolation-level="ReadCommitted"
                 pool-minsize="2"
                 pool-maxsize="250"
@@ -595,9 +595,9 @@ access. For a detailed description see the core/docs/entityconfig.html file.
         <read-data reader-name="ext-demo"/>
         <inline-jdbc
                 jdbc-driver="org.postgresql.Driver"
-                jdbc-uri="${sys:OFBIZ_POSTGRES_OFBIZ_URI_TENANT}"
-                jdbc-username="${sys:OFBIZ_POSTGRES_OFBIZ_USER}"
-                jdbc-password="${sys:OFBIZ_POSTGRES_OFBIZ_PASSWORD}"
+                jdbc-uri="${sysenv:OFBIZ_POSTGRES_OFBIZ_URI_TENANT}"
+                jdbc-username="${sysenv:OFBIZ_POSTGRES_OFBIZ_USER}"
+                jdbc-password="${sysenv:OFBIZ_POSTGRES_OFBIZ_PASSWORD}"
                 isolation-level="ReadCommitted"
                 pool-minsize="2"
                 pool-maxsize="250"
