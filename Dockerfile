@@ -3,7 +3,7 @@
 # Apache OFBiz - Dockerfile ajustado para Railway
 # - Sem mounts de cache/bind/tmpfs (Railway bloqueia)
 # - Sem VOLUME no stage final (Railway pede volumes via painel)
-# - Copia o driver PostgreSQL para /ofbiz/lib-extra
+# - Garante driver PostgreSQL em /ofbiz/lib-extra (copia de /ofbiz/lib ou baixa do Maven)
 # - Expõe 8443 (HTTPS) e 8080 (HTTP)
 #####################################################################
 
@@ -48,9 +48,9 @@ RUN ./gradlew --console plain distTar
 ##############################
 FROM eclipse-temurin:17@sha256:e8d451f3b5aa6422c2b00bb913cb8d37a55a61934259109d945605c5651de9a6 AS runtimebase
 
-# xsltproc é usado para desabilitar componentes na 1ª execução
+# xsltproc é usado para desabilitar componentes na 1ª execução + curl para fallback do driver
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends xsltproc \
+    && apt-get install -y --no-install-recommends xsltproc curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Usuário dedicado
@@ -75,6 +75,18 @@ COPY --chmod=555 docker/docker-entrypoint.sh docker/send_ofbiz_stop_signal.sh .
 COPY --chmod=444 docker/disable-component.xslt .
 COPY --chmod=444 docker/templates templates
 
+# >>> GARANTE O DRIVER POSTGRES EM /ofbiz/lib-extra (copia se existir; senão baixa)
+RUN set -e; \
+    mkdir -p /ofbiz/lib-extra; \
+    if [ -f /ofbiz/lib/postgresql-42.7.3.jar ]; then \
+      cp /ofbiz/lib/postgresql-42.7.3.jar /ofbiz/lib-extra/; \
+    else \
+      echo "Baixando driver PostgreSQL 42.7.3..."; \
+      curl -fsSL -o /ofbiz/lib-extra/postgresql-42.7.3.jar \
+        https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.3/postgresql-42.7.3.jar; \
+    fi; \
+    ls -l /ofbiz/lib-extra/postgresql-42.7.3.jar
+
 ##############################
 # FINAL para Railway (sem VOLUME)
 ##############################
@@ -82,14 +94,9 @@ FROM runtimebase AS final
 
 USER ofbiz
 
-# (RECOMENDADO) Copie o entityengine.xml que usa ${sysenv:...}
-# Coloque o seu arquivo no repo em docker/entityengine.xml.
-# Se não tiver, mantenha comentado e garanta esse arquivo via Secret File/volume.
+# (Opcional, recomendado) copie seu entityengine.xml que usa ${sysenv:...}
+# Coloque o arquivo no repo em docker/entityengine.xml e descomente a linha abaixo:
 # COPY --chmod=444 --chown=ofbiz:ofbiz docker/entityengine.xml /ofbiz/config/entityengine.xml
-
-# Copia o driver PostgreSQL atualizado para o classpath preferencial
-# Coloque o jar no repo em: docker/drivers/postgresql-42.7.3.jar
-COPY --chmod=444 --chown=ofbiz:ofbiz docker/drivers/postgresql-42.7.3.jar /ofbiz/lib-extra/postgresql-42.7.3.jar
 
 # Expor HTTPS (8443) e também HTTP (8080) para facilitar teste
 EXPOSE 8443
