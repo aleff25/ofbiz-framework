@@ -120,10 +120,13 @@ VOLUME ["/ofbiz/config", "/ofbiz/runtime", "/ofbiz/lib-extra"]
 
 
 ###################################################################################
-# Runtime image with no data loaded.
-FROM runtimebase AS runtime
+FROM runtimebase AS final
 
 USER ofbiz
 
-VOLUME ["/docker-entrypoint-hooks"]
-VOLUME ["/ofbiz/config", "/ofbiz/runtime", "/ofbiz/lib-extra"]
+# (opcional mas útil) exponha também a HTTP 8080 para facilitar teste via HTTP
+EXPOSE 8443
+EXPOSE 8080
+
+ENTRYPOINT ["/ofbiz/docker-entrypoint.sh"]
+CMD ["bin/ofbiz"]
