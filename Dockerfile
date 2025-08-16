@@ -1,127 +1,106 @@
 # syntax=docker/dockerfile:1
 #####################################################################
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
+# Apache OFBiz - Dockerfile ajustado para Railway
+# - Sem mounts de cache do BuildKit
+# - Sem VOLUME no stage final
+# - Expõe 8443 (HTTPS) e 8080 (HTTP)
 #####################################################################
 
+##############################
+# Builder
+##############################
 FROM eclipse-temurin:17@sha256:e8d451f3b5aa6422c2b00bb913cb8d37a55a61934259109d945605c5651de9a6 AS builder
 
-# Git is used for various OFBiz build tasks.
+# Git é usado em tasks do build do OFBiz
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /builder
 
-# Add and run the gradle wrapper to trigger a download if needed.
+# Gradle wrapper
 COPY --chmod=755 gradle/init-gradle-wrapper.sh gradle/
 COPY --chmod=755 gradlew .
-RUN ["sed", "-i", "s/shasum/sha1sum/g", "gradle/init-gradle-wrapper.sh"]
-RUN ["gradle/init-gradle-wrapper.sh"]
+RUN sed -i 's/shasum/sha1sum/g' gradle/init-gradle-wrapper.sh
+RUN gradle/init-gradle-wrapper.sh
 
-# Run gradlew to trigger downloading of the gradle distribution (if needed)
-RUN ["./gradlew", "--console", "plain"]
+# Dispara o download do Gradle (sem BuildKit cache)
+RUN ./gradlew --console plain
 
-# Copy all OFBiz sources.
+# Copia o código do OFBiz
 COPY buildSrc/ buildSrc/
 COPY applications/ applications/
 COPY config/ config/
 COPY framework/ framework/
 COPY gradle/ gradle/
 COPY lib/ lib/
-# We use a regex to match the plugins directory to avoid a build error when the directory doesn't exist.
+# Regex para plugins existir ou não
 COPY plugin[s]/ plugins/
 COPY themes/ themes/
 COPY APACHE2_HEADER build.gradle common.gradle gradle.properties NOTICE settings.gradle dependencies.gradle .
 
-# Build OFBiz while mounting a gradle cache
-RUN --mount=type=tmpfs,target=runtime/tmp \
-    ["./gradlew", "--console", "plain", "distTar"]
+# Build do OFBiz (gera distTar) - sem mounts de cache
+RUN ./gradlew --console plain distTar
 
-###################################################################################
-
+##############################
+# Runtime base
+##############################
 FROM eclipse-temurin:17@sha256:e8d451f3b5aa6422c2b00bb913cb8d37a55a61934259109d945605c5651de9a6 AS runtimebase
 
-# xsltproc is used to disable OFBiz components during first run.
+# xsltproc é usado para desabilitar componentes na 1ª execução
 RUN apt-get update \
     && apt-get install -y --no-install-recommends xsltproc \
     && rm -rf /var/lib/apt/lists/*
 
-RUN ["useradd", "ofbiz"]
+# Usuário dedicado
+RUN useradd ofbiz
 
-# Create directories used to mount volumes where hooks into the startup process can be placed.
-RUN ["mkdir", "--parents", \
-    "/docker-entrypoint-hooks/before-config-applied.d", \
-    "/docker-entrypoint-hooks/after-config-applied.d", \
-    "/docker-entrypoint-hooks/before-data-load.d", \
-    "/docker-entrypoint-hooks/after-data-load.d", \
-    "/docker-entrypoint-hooks/additional-data.d"]
-RUN ["/usr/bin/chown", "-R", "ofbiz:ofbiz", "/docker-entrypoint-hooks" ]
+# Diretórios de hooks do entrypoint oficial
+RUN mkdir -p \
+    /docker-entrypoint-hooks/before-config-applied.d \
+    /docker-entrypoint-hooks/after-config-applied.d \
+    /docker-entrypoint-hooks/before-data-load.d \
+    /docker-entrypoint-hooks/after-data-load.d \
+    /docker-entrypoint-hooks/additional-data.d \
+ && chown -R ofbiz:ofbiz /docker-entrypoint-hooks
 
 USER ofbiz
 WORKDIR /ofbiz
 
-# Extract the OFBiz tar distribution created by the builder stage.
+# Extrai o tar do OFBiz produzido no build
 RUN --mount=type=bind,from=builder,source=/builder/build/distributions/ofbiz.tar,target=/mnt/ofbiz.tar \
-    ["tar", "--extract", "--strip-components=1", "--file=/mnt/ofbiz.tar"]
+    tar --extract --strip-components=1 --file=/mnt/ofbiz.tar
 
-# Create directories for OFBiz volume mountpoints.
-RUN ["mkdir", "/ofbiz/runtime", "/ofbiz/config", "/ofbiz/lib-extra"]
+# Diretórios usuais do OFBiz
+RUN mkdir /ofbiz/runtime /ofbiz/config /ofbiz/lib-extra
 
-# Append the java runtime version to the OFBiz VERSION file.
+# Versão do Java no VERSION
 COPY --chmod=644 --chown=ofbiz:ofbiz VERSION .
 RUN echo '${uiLabelMap.CommonJavaVersion}:' "$(java --version | grep Runtime | sed 's/.*Runtime Environment //; s/ (build.*//;')" >> /ofbiz/VERSION
 
-# Leave executable scripts owned by root and non-writable, addressing sonarcloud rule,
-# https://sonarcloud.io/organizations/apache/rules?open=docker%3AS6504&rule_key=docker%3AS6504
+# Scripts do entrypoint oficial
 COPY --chmod=555 docker/docker-entrypoint.sh docker/send_ofbiz_stop_signal.sh .
-
 COPY --chmod=444 docker/disable-component.xslt .
 COPY --chmod=444 docker/templates templates
 
-EXPOSE 8443
-EXPOSE 8009
-EXPOSE 5005
-
-ENTRYPOINT ["/ofbiz/docker-entrypoint.sh"]
-CMD ["bin/ofbiz"]
-
-###################################################################################
-# Load demo data before defining volumes. This results in a container image
-# that is ready to go for demo purposes.
-FROM runtimebase AS demo
-
-USER ofbiz
-
-RUN /ofbiz/bin/ofbiz --load-data
-RUN mkdir --parents /ofbiz/runtime/container_state
-RUN touch /ofbiz/runtime/container_state/data_loaded
-RUN touch /ofbiz/runtime/container_state/admin_loaded
-RUN touch /ofbiz/runtime/container_state/db_config_applied
-
-
-###################################################################################
+##############################
+# FINAL para Railway (sem VOLUME)
+##############################
 FROM runtimebase AS final
 
 USER ofbiz
 
-# (opcional mas útil) exponha também a HTTP 8080 para facilitar teste via HTTP
+# (Opcional, recomendado) Se você tiver um entityengine.xml que usa ${sysenv:...},
+# descomente a linha abaixo e coloque o arquivo no repo em docker/entityengine.xml:
+# COPY --chmod=444 --chown=ofbiz:ofbiz docker/entityengine.xml /ofbiz/config/entityengine.xml
+
+# Expor HTTPS (8443) e também HTTP (8080) para facilitar teste
 EXPOSE 8443
 EXPOSE 8080
+# (Se precisar de AJP/debug, você pode expor 8009/5005 também)
 
+# ENTRYPOINT oficial do OFBiz
 ENTRYPOINT ["/ofbiz/docker-entrypoint.sh"]
+
+# Comando padrão
 CMD ["bin/ofbiz"]
