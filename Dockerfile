@@ -34,8 +34,7 @@ RUN ["sed", "-i", "s/shasum/sha1sum/g", "gradle/init-gradle-wrapper.sh"]
 RUN ["gradle/init-gradle-wrapper.sh"]
 
 # Run gradlew to trigger downloading of the gradle distribution (if needed)
-RUN --mount=type=cache,sharing=locked,target=/root/.gradle \
-    ["./gradlew", "--console", "plain"]
+RUN ["./gradlew", "--console", "plain"]
 
 # Copy all OFBiz sources.
 COPY buildSrc/ buildSrc/
@@ -50,8 +49,7 @@ COPY themes/ themes/
 COPY APACHE2_HEADER build.gradle common.gradle gradle.properties NOTICE settings.gradle dependencies.gradle .
 
 # Build OFBiz while mounting a gradle cache
-RUN --mount=type=cache,sharing=locked,target=/root/.gradle \
-    --mount=type=tmpfs,target=runtime/tmp \
+RUN --mount=type=tmpfs,target=runtime/tmp \
     ["./gradlew", "--console", "plain", "distTar"]
 
 ###################################################################################
