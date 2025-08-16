@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 #####################################################################
 # Apache OFBiz - Dockerfile ajustado para Railway
-# - Sem mounts de cache do BuildKit
-# - Sem VOLUME no stage final
+# - Sem mounts de cache/bind/tmpfs (Railway bloqueia)
+# - Sem VOLUME no stage final (Railway pede volumes via painel)
 # - Expõe 8443 (HTTPS) e 8080 (HTTP)
 #####################################################################
 
@@ -24,10 +24,10 @@ COPY --chmod=755 gradlew .
 RUN sed -i 's/shasum/sha1sum/g' gradle/init-gradle-wrapper.sh
 RUN gradle/init-gradle-wrapper.sh
 
-# Dispara o download do Gradle (sem BuildKit cache)
+# Dispara o download do Gradle
 RUN ./gradlew --console plain
 
-# Copia o código do OFBiz
+# Copia o código do OFBiz (inclui lib/ com postgresql-42.7.3.jar)
 COPY buildSrc/ buildSrc/
 COPY applications/ applications/
 COPY config/ config/
@@ -39,7 +39,7 @@ COPY plugin[s]/ plugins/
 COPY themes/ themes/
 COPY APACHE2_HEADER build.gradle common.gradle gradle.properties NOTICE settings.gradle dependencies.gradle .
 
-# Build do OFBiz (gera distTar) - sem mounts de cache
+# Build do OFBiz (gera distTar)
 RUN ./gradlew --console plain distTar
 
 ##############################
@@ -55,24 +55,15 @@ RUN apt-get update \
 # Usuário dedicado
 RUN useradd ofbiz
 
-# Diretórios de hooks do entrypoint oficial
-RUN mkdir -p \
-    /docker-entrypoint-hooks/before-config-applied.d \
-    /docker-entrypoint-hooks/after-config-applied.d \
-    /docker-entrypoint-hooks/before-data-load.d \
-    /docker-entrypoint-hooks/after-data-load.d \
-    /docker-entrypoint-hooks/additional-data.d \
- && chown -R ofbiz:ofbiz /docker-entrypoint-hooks
-
-USER ofbiz
 WORKDIR /ofbiz
 
-# Extrai o tar do OFBiz produzido no build
-RUN --mount=type=bind,from=builder,source=/builder/build/distributions/ofbiz.tar,target=/mnt/ofbiz.tar \
-    tar --extract --strip-components=1 --file=/mnt/ofbiz.tar
+# Copia o tar do builder e extrai
+COPY --from=builder --chown=ofbiz:ofbiz /builder/build/distributions/ofbiz.tar /tmp/ofbiz.tar
+RUN tar --extract --strip-components=1 --file=/tmp/ofbiz.tar && rm /tmp/ofbiz.tar
 
 # Diretórios usuais do OFBiz
-RUN mkdir /ofbiz/runtime /ofbiz/config /ofbiz/lib-extra
+RUN mkdir -p /ofbiz/runtime /ofbiz/config /ofbiz/lib-extra && chown -R ofbiz:ofbiz /ofbiz
+USER ofbiz
 
 # Versão do Java no VERSION
 COPY --chmod=644 --chown=ofbiz:ofbiz VERSION .
@@ -90,14 +81,13 @@ FROM runtimebase AS final
 
 USER ofbiz
 
-# (Opcional, recomendado) Se você tiver um entityengine.xml que usa ${sysenv:...},
-# descomente a linha abaixo e coloque o arquivo no repo em docker/entityengine.xml:
+# (Opcional, recomendado) copie seu entityengine.xml que usa ${sysenv:...}
+# coloque o arquivo no repo em docker/entityengine.xml e descomente:
 # COPY --chmod=444 --chown=ofbiz:ofbiz docker/entityengine.xml /ofbiz/config/entityengine.xml
 
 # Expor HTTPS (8443) e também HTTP (8080) para facilitar teste
 EXPOSE 8443
 EXPOSE 8080
-# (Se precisar de AJP/debug, você pode expor 8009/5005 também)
 
 # ENTRYPOINT oficial do OFBiz
 ENTRYPOINT ["/ofbiz/docker-entrypoint.sh"]
