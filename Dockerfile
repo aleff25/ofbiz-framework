@@ -3,6 +3,7 @@
 # Apache OFBiz - Dockerfile ajustado para Railway
 # - Sem mounts de cache/bind/tmpfs (Railway bloqueia)
 # - Sem VOLUME no stage final (Railway pede volumes via painel)
+# - Copia o driver PostgreSQL para /ofbiz/lib-extra
 # - Expõe 8443 (HTTPS) e 8080 (HTTP)
 #####################################################################
 
@@ -27,7 +28,7 @@ RUN gradle/init-gradle-wrapper.sh
 # Dispara o download do Gradle
 RUN ./gradlew --console plain
 
-# Copia o código do OFBiz (inclui lib/ com postgresql-42.7.3.jar)
+# Copia o código do OFBiz (inclui lib/ com seus jars)
 COPY buildSrc/ buildSrc/
 COPY applications/ applications/
 COPY config/ config/
@@ -81,9 +82,14 @@ FROM runtimebase AS final
 
 USER ofbiz
 
-# (Opcional, recomendado) copie seu entityengine.xml que usa ${sysenv:...}
-# coloque o arquivo no repo em docker/entityengine.xml e descomente:
+# (RECOMENDADO) Copie o entityengine.xml que usa ${sysenv:...}
+# Coloque o seu arquivo no repo em docker/entityengine.xml.
+# Se não tiver, mantenha comentado e garanta esse arquivo via Secret File/volume.
 # COPY --chmod=444 --chown=ofbiz:ofbiz docker/entityengine.xml /ofbiz/config/entityengine.xml
+
+# Copia o driver PostgreSQL atualizado para o classpath preferencial
+# Coloque o jar no repo em: docker/drivers/postgresql-42.7.3.jar
+COPY --chmod=444 --chown=ofbiz:ofbiz docker/drivers/postgresql-42.7.3.jar /ofbiz/lib-extra/postgresql-42.7.3.jar
 
 # Expor HTTPS (8443) e também HTTP (8080) para facilitar teste
 EXPOSE 8443
