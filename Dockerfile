@@ -66,9 +66,6 @@ RUN tar --extract --strip-components=1 --file=/tmp/ofbiz.tar && rm /tmp/ofbiz.ta
 RUN mkdir -p /ofbiz/runtime /ofbiz/config /ofbiz/lib-extra && chown -R ofbiz:ofbiz /ofbiz
 USER ofbiz
 
-# Copia driver PostgreSQL (deixe o .jar dentro de docker/drivers/)
-COPY --chmod=444 --chown=ofbiz:ofbiz lib/postgresql-42.7.3.jar /ofbiz/lib-extra/postgresql-42.7.3.jar
-
 # Copia entityengine.xml e demais configs do diretório "config" para sobrescrever os defaults
 COPY --chmod=444 --chown=ofbiz:ofbiz config/ /ofbiz/config/
 
