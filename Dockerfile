@@ -66,9 +66,6 @@ RUN tar --extract --strip-components=1 --file=/tmp/ofbiz.tar && rm /tmp/ofbiz.ta
 RUN mkdir -p /ofbiz/runtime /ofbiz/config /ofbiz/lib-extra && chown -R ofbiz:ofbiz /ofbiz
 USER ofbiz
 
-# Copia entityengine.xml e demais configs do diretório "config" para sobrescrever os defaults
-COPY --chmod=444 --chown=ofbiz:ofbiz config/ /ofbiz/config/
-
 # Versão do Java no VERSION
 COPY --chmod=644 --chown=ofbiz:ofbiz VERSION .
 RUN echo '${uiLabelMap.CommonJavaVersion}:' "$(java --version | grep Runtime | sed 's/.*Runtime Environment //; s/ (build.*//;')" >> /ofbiz/VERSION
@@ -99,7 +96,8 @@ USER ofbiz
 
 # (Opcional, recomendado) copie seu entityengine.xml que usa ${sysenv:...}
 # Coloque o arquivo no repo em docker/entityengine.xml e descomente a linha abaixo:
-# COPY --chmod=444 --chown=ofbiz:ofbiz docker/entityengine.xml /ofbiz/config/entityengine.xml
+COPY --chmod=444 --chown=ofbiz:ofbiz config/ /ofbiz/config/
+
 
 # Expor HTTPS (8443) e também HTTP (8080) para facilitar teste
 EXPOSE 8443
